@@ -1,0 +1,5 @@
+reorder_imports = true
+
+# These only work with nightly. Use `cargo +nightly fmt` following to avoid warnings.
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
