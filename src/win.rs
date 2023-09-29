@@ -5,11 +5,10 @@ use windows::Win32::System::DataExchange::{
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
+use windows::Win32::System::Ole::{CF_TEXT, CLIPBOARD_FORMAT};
 use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, MOD_WIN};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-// Code for text-type clipboard entries
-const CF_TEXT: u16 = 1u16;
 // Virtual keycode for the 'V' key
 const VK_LETTER_V: u32 = 0x56;
 // Hotkey ID
@@ -82,8 +81,9 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 }
 
                 // Get handle clipboard data of type text
-                // TODO: can't convert CLIPBOARD_FORMAT to u16 (to then go to u32 which GetClipboardData takes), fudge it for now
-                let cb_data_handle = if let Ok(h) = GetClipboardData(CF_TEXT as u32) {
+                let cb_data_handle = if let Ok(h) =
+                    GetClipboardData(std::mem::transmute::<CLIPBOARD_FORMAT, u16>(CF_TEXT) as u32)
+                {
                     h
                 } else {
                     println!("Clipboard data was not CF_TEXT or handle fetch failed");
