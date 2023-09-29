@@ -3,7 +3,7 @@ use memmap2::MmapMut;
 #[derive(Debug)]
 pub(crate) struct ClipboardStore {
     mmap: MmapMut,
-    clips: Vec<String>,
+    clips: Vec<ClipboardEntry>,
 }
 
 impl ClipboardStore {
@@ -26,14 +26,23 @@ impl ClipboardStore {
         }
     }
 
-    pub(crate) fn add_clip(&mut self, s: String) {
-        self.clips.push(s);
+    pub(crate) fn add_clip(&mut self, data: String) {
+        self.clips.push(ClipboardEntry {
+            created: std::time::Instant::now(),
+            data,
+        });
     }
 
     // TODO: delete
     pub(crate) fn dump(&self) {
         for clip in &self.clips {
-            println!("{clip}");
+            println!("{clip:?}");
         }
     }
+}
+
+#[derive(Debug)]
+struct ClipboardEntry {
+    created: std::time::Instant,
+    data: String,
 }
