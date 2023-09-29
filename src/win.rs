@@ -9,7 +9,7 @@ use windows::Win32::System::Ole::{CF_TEXT, CLIPBOARD_FORMAT};
 use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, MOD_WIN, VIRTUAL_KEY, VK_V};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-use crate::MMAP;
+use crate::util::clip_store_op;
 
 // Hotkey ID
 const HOTKEY_ID_WIN_V: i32 = 0xBEEF;
@@ -52,6 +52,7 @@ pub(crate) fn run_loop() {
         );
 
         // Register Win+V
+        // TODO: add retries/backoff and fail after some time
         while let Err(_) = RegisterHotKey(
             window_handle,
             HOTKEY_ID_WIN_V,
@@ -63,6 +64,7 @@ pub(crate) fn run_loop() {
         // TODO: call UnregisterHotKey?
 
         // Add this window as a clipboard format listener
+        // TODO: add retries/backoff and fail after some time
         while let Err(_) = AddClipboardFormatListener(window_handle) {
             println!("Failed to add ClipboardFormatListener");
         }
@@ -115,14 +117,8 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                         panic!();
                     }
                 };
-                println!("COPIED: {data}");
-                loop {
-                    if let Some(mmap) = MMAP.get_mut() {
-                        mmap[0..data.len()].copy_from_slice(data.as_bytes());
-                        mmap.flush().expect("Failed to flush mmap");
-                        break;
-                    }
-                }
+                println!("COPIED: {data}"); // TODO: delete or make trace log
+                clip_store_op(|store| store.add_clip(data.to_owned()));
 
                 // Close resources and return
                 while let Err(_) = GlobalUnlock(cb_data_handle) {
@@ -135,10 +131,14 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 LRESULT(0)
             }
             WM_HOTKEY => {
+                // Coerce wparam into a hotkey ID and make sure it matches the one we registered
                 let hotkey_id: isize = std::mem::transmute(wparam);
                 let hotkey_id: i32 = i32::try_from(hotkey_id)
                     .expect("Failed to cast hotkey_id from isize down to i32");
                 debug_assert!(hotkey_id == HOTKEY_ID_WIN_V);
+
+                // Dump clipboard, for now
+                clip_store_op(|store| store.dump());
 
                 LRESULT(0)
             }
