@@ -99,7 +99,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 };
                 let data = std::ffi::CStr::from_ptr(data as *const _).to_string_lossy();
                 println!("You copied: \"{data}\"");
-                
+
                 // Close resources and return
                 while let Err(_) = GlobalUnlock(cb_data_handle) {
                     println!("Failed to GlobalUnlock. Retrying...");
