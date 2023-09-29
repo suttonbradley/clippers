@@ -6,11 +6,9 @@ use windows::Win32::System::DataExchange::{
 use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
 use windows::Win32::System::Ole::{CF_TEXT, CLIPBOARD_FORMAT};
-use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, MOD_WIN};
+use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, MOD_WIN, VIRTUAL_KEY, VK_V};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-// Virtual keycode for the 'V' key
-const VK_LETTER_V: u32 = 0x56;
 // Hotkey ID
 const HOTKEY_ID_WIN_V: i32 = 0xBEEF;
 
@@ -52,7 +50,12 @@ pub(crate) fn run_loop() {
         );
 
         // Register Win+V
-        while let Err(_) = RegisterHotKey(window_handle, HOTKEY_ID_WIN_V, MOD_WIN, VK_LETTER_V) {
+        while let Err(_) = RegisterHotKey(
+            window_handle,
+            HOTKEY_ID_WIN_V,
+            MOD_WIN,
+            std::mem::transmute::<VIRTUAL_KEY, u16>(VK_V) as u32,
+        ) {
             println!("Failed to register hotkey");
         }
         // TODO: call UnregisterHotKey?
