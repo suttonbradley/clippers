@@ -103,8 +103,14 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     }
                     println!("GlobalLock returned null. Retrying...");
                 };
-                let data = std::ffi::CStr::from_ptr(data as *const _).to_string_lossy();
-                println!("COPIED: \"{data}\"");
+                let data = match std::ffi::CStr::from_ptr(data as *const _).to_str() {
+                    Ok(data) => data,
+                    Err(e) => {
+                        println!("Failed to convert data to UTF-8: {e}");
+                        panic!();
+                    }
+                };
+                println!("COPIED: {data}");
 
                 // Close resources and return
                 while let Err(_) = GlobalUnlock(cb_data_handle) {
