@@ -9,6 +9,8 @@ use windows::Win32::System::Ole::{CF_TEXT, CLIPBOARD_FORMAT};
 use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, MOD_WIN, VIRTUAL_KEY, VK_V};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
+use crate::MMAP;
+
 // Hotkey ID
 const HOTKEY_ID_WIN_V: i32 = 0xBEEF;
 
@@ -114,6 +116,13 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     }
                 };
                 println!("COPIED: {data}");
+                loop {
+                    if let Some(mmap) = MMAP.get_mut() {
+                        mmap[0..data.len()].copy_from_slice(data.as_bytes());
+                        mmap.flush().expect("Failed to flush mmap");
+                        break;
+                    }
+                }
 
                 // Close resources and return
                 while let Err(_) = GlobalUnlock(cb_data_handle) {
