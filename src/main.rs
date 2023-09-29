@@ -2,7 +2,7 @@ use windows::{
     core::*,
     Win32::Foundation::*,
     Win32::System::DataExchange::{AddClipboardFormatListener, CloseClipboard, GetClipboardData},
-    Win32::System::Memory::GlobalLock,
+    Win32::System::Memory::{GlobalLock, GlobalUnlock},
     Win32::System::{DataExchange::OpenClipboard, LibraryLoader::GetModuleHandleA},
     Win32::UI::WindowsAndMessaging::*,
 };
@@ -73,14 +73,14 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 }
                 println!("Successfully opened clipboard");
 
-                // Get clipboard data of type text,
+                // Get handle clipboard data of type text
                 // TODO: can't convert CLIPBOARD_FORMAT to u16 (to then go to u32 which GetClipboardData takes), fudge it for now
                 const CF_TEXT: u16 = 1u16;
                 let cb_data_handle = if let Ok(h) = GetClipboardData(CF_TEXT as u32) {
                     println!("Got handle to clipboard data");
                     h
                 } else {
-                    println!("Failed to get clipboard data as CF_TEXT");
+                    println!("Clipboard data was not CF_TEXT or handle fetch failed");
                     // TODO: use closure to do this so that we can unconditionally CloseClipboard with only one line
                     while let Err(_) = CloseClipboard() {
                         println!("Failed to close clipboard. Retrying...");
@@ -88,9 +88,22 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     return LRESULT(1); // TODO error codes?
                 };
 
-                // GlobalLock(cb_data_handle);
-
-                // Close and return
+                // Use handle to get clipboard data via a GlobalLock
+                let cb_data_handle: HGLOBAL = core::mem::transmute(cb_data_handle);
+                let data = loop {
+                    let data = GlobalLock(cb_data_handle);
+                    if !data.is_null() {
+                        break data;
+                    }
+                    println!("GlobalLock returned null. Retrying...");
+                };
+                let data = std::ffi::CStr::from_ptr(data as *const _).to_string_lossy();
+                println!("You copied: \"{data}\"");
+                
+                // Close resources and return
+                while let Err(_) = GlobalUnlock(cb_data_handle) {
+                    println!("Failed to GlobalUnlock. Retrying...");
+                }
                 while let Err(_) = CloseClipboard() {
                     println!("Failed to close clipboard. Retrying...");
                 }
