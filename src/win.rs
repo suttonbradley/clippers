@@ -93,12 +93,12 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 {
                     h
                 } else {
-                    println!("Clipboard data was not CF_TEXT or handle fetch failed");
+                    println!("Clipboard data was not CF_TEXT or handle fetch failed"); // TODO: trace log
                     // TODO: use closure to do this so that we can unconditionally CloseClipboard with only one line
                     while let Err(_) = CloseClipboard() {
                         println!("Failed to close clipboard. Retrying...");
                     }
-                    return LRESULT(1); // TODO error codes?
+                    return LRESULT(1); // TODO: error codes?
                 };
 
                 // Use handle to get clipboard data via a GlobalLock
@@ -117,7 +117,8 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                         panic!();
                     }
                 };
-                println!("COPIED: {data}"); // TODO: delete or make trace log
+                // println!("COPIED: {data}"); // TODO: delete or make trace log
+                // TODO: apply a size limit
                 clip_store_op(|store| store.add_clip(data.to_owned()));
 
                 // Close resources and return
@@ -138,7 +139,12 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 debug_assert!(hotkey_id == HOTKEY_ID_WIN_V);
 
                 // Dump clipboard, for now
+                println!("Dumping clipboard:");
                 clip_store_op(|store| store.dump());
+                // TODO: just do this for now to test it out
+                let query = "abc";
+                println!("Matching clipboard on \"{query}\":");
+                clip_store_op(|store| store.get_matches(query));
 
                 LRESULT(0)
             }

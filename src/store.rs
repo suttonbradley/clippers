@@ -1,9 +1,10 @@
-use chrono::{DateTime, Utc};
-use serde::Serialize;
-use {serde_json, sled};
+use chrono::Utc;
+use sled;
+use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 
 pub(crate) struct ClipboardStore {
     clips: sled::Db,
+    // TODO: store pinned
 }
 
 impl ClipboardStore {
@@ -14,12 +15,9 @@ impl ClipboardStore {
     }
 
     pub(crate) fn add_clip(&mut self, data: String) {
-        let entry = ClipboardEntry::from_data(data);
-        // TODO: remove unwrap
-        let entry_json = serde_json::to_string(&entry).expect("Failed to serialize to JSON");
-
+        // TODO: dedup
         self.clips
-            .insert(entry.created.to_string(), entry_json.as_bytes())
+            .insert(Utc::now().to_string(), data.as_str())
             .expect("Failed to insert into DB");
     }
 
@@ -35,20 +33,21 @@ impl ClipboardStore {
             }
         }
     }
-}
 
-#[derive(Serialize)]
-struct ClipboardEntry {
-    // TODO: might not be necessary to store this, in which case we could get rid of serde too
-    created: DateTime<Utc>,
-    data: String,
-}
+    // TODO: should actually return something, for now just print
+    pub(crate) fn get_matches(&self, query: &str) {
+        let matcher = SkimMatcherV2::default();
+        // TODO: this creates an owned string copied out of the database, not performant
+        let mut values: Vec<(i64, String)> = self.clips.iter().filter_map(|x| x.ok().map(|(_, v)| {
+            let v = std::str::from_utf8(v.as_ref()).unwrap().to_owned();
+            (matcher.fuzzy_match(v.as_str(), query).unwrap_or(0), v)
+        })).collect();
+        values.sort_by_key(|x| std::cmp::Reverse(x.0));
 
-impl ClipboardEntry {
-    pub(crate) fn from_data(data: String) -> Self {
-        Self {
-            created: Utc::now(),
-            data,
-        }
+        println!("{values:?}");
+    }
+
+    fn clear_old(&mut self) {
+        unimplemented!();
     }
 }
