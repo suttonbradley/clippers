@@ -1,6 +1,7 @@
 use chrono::Utc;
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use sled;
-use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 
 pub(crate) struct ClipboardStore {
     clips: sled::Db,
@@ -38,10 +39,16 @@ impl ClipboardStore {
     pub(crate) fn get_matches(&self, query: &str) {
         let matcher = SkimMatcherV2::default();
         // TODO: this creates an owned string copied out of the database, not performant
-        let mut values: Vec<(i64, String)> = self.clips.iter().filter_map(|x| x.ok().map(|(_, v)| {
-            let v = std::str::from_utf8(v.as_ref()).unwrap().to_owned();
-            (matcher.fuzzy_match(v.as_str(), query).unwrap_or(0), v)
-        })).collect();
+        let mut values: Vec<(i64, String)> = self
+            .clips
+            .iter()
+            .filter_map(|x| {
+                x.ok().map(|(_, v)| {
+                    let v = std::str::from_utf8(v.as_ref()).unwrap().to_owned();
+                    (matcher.fuzzy_match(v.as_str(), query).unwrap_or(0), v)
+                })
+            })
+            .collect();
         values.sort_by_key(|x| std::cmp::Reverse(x.0));
 
         println!("{values:?}");

@@ -94,6 +94,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     h
                 } else {
                     println!("Clipboard data was not CF_TEXT or handle fetch failed"); // TODO: trace log
+
                     // TODO: use closure to do this so that we can unconditionally CloseClipboard with only one line
                     while let Err(_) = CloseClipboard() {
                         println!("Failed to close clipboard. Retrying...");
