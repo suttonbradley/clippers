@@ -8,7 +8,11 @@ pub(crate) static mut CLIP_STORE: std::sync::OnceLock<ClipboardStore> = std::syn
 
 fn main() {
     // Create ClipboardStore and save in OnceLock
-    unsafe { CLIP_STORE.set(ClipboardStore::new()).expect("Failed to create ClipboardStore"); }
+    unsafe {
+        if let Err(_) = CLIP_STORE.set(ClipboardStore::new()) {
+            panic!("Failed to setup ClipboardStore");
+        }
+    }
 
     // Run windows listener loop
     crate::win::run_loop();
