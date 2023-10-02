@@ -19,11 +19,11 @@ impl ClipboardStore {
         }
     }
 
-    pub(crate) fn add_clip(&mut self, data: String) {
+    pub(crate) fn add_clip(&mut self, data: &str) {
         // TODO: dedup
         trace!("Adding clip to DB: \"{}\"", data);
         self.clips
-            .insert(Utc::now().to_string(), data.as_str())
+            .insert(Utc::now().to_string(), data)
             .expect("Failed to insert into DB");
     }
 
@@ -113,7 +113,7 @@ mod test {
         for num_elements in [10, 100 /*, 1_000, 10_000*/] {
             // Add random clips to get to desired size
             for _ in 0..(num_elements - db.clips.len()) {
-                db.add_clip(rand_string(MIN_DB_ENTRY_LEN..MAX_DB_ENTRY_LEN));
+                db.add_clip(rand_string(MIN_DB_ENTRY_LEN..MAX_DB_ENTRY_LEN).as_str());
             }
 
             // Search for random string many times to get average search time

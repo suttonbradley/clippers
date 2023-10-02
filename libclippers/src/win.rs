@@ -120,7 +120,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     }
                 };
                 // TODO: apply a size limit
-                clip_store_op(|store| store.add_clip(data.to_owned()));
+                clip_store_op(|store| store.add_clip(data));
 
                 // Close resources and return
                 while let Err(_) = GlobalUnlock(cb_data_handle) {

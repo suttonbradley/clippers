@@ -25,3 +25,8 @@ pub fn init() -> JoinHandle<()> {
         thread::spawn(|| crate::win::run_loop())
     }
 }
+
+// TODO: probably not the most ergonomic choice
+pub fn get_matches(query: &str) {
+    util::clip_store_op(|store| store.get_matches(query));
+}

@@ -2,15 +2,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 // use tauri::Manager;
-use libclippers;
-
-use env_logger;
 use log::info;
+use {env_logger, libclippers};
 
 #[tauri::command]
 // TODO: make async as generated?
 fn execute_query(query: &str) -> String {
     info!("Querying: \"{query}\"");
+    libclippers::get_matches(query);
     format!("YOU QUERIED {query}")
 }
 
