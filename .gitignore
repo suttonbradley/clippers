@@ -1,6 +1,6 @@
-*
+/*
 
-!src/*
+!src/
 !Cargo.toml
 !plan.md
 !rustfmt.toml
