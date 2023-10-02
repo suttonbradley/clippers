@@ -13,7 +13,9 @@ pub(crate) struct ClipboardStore {
 impl ClipboardStore {
     pub(crate) fn new() -> Self {
         // Create database
-        Self { clips: sled::open("clipboard").expect("Could not open database") }
+        Self {
+            clips: sled::open("clipboard").expect("Could not open database"),
+        }
     }
 
     pub(crate) fn add_clip(&mut self, data: String) {
@@ -39,6 +41,7 @@ impl ClipboardStore {
     // TODO: should actually return something, for now just print
     pub(crate) fn get_matches(&self, query: &str) {
         let matcher = SkimMatcherV2::default().ignore_case(); // TODO: make case ignore configurable?
+
         // TODO: this creates an owned string copied out of the database, not performant
         let mut values: Vec<(i64, String)> = self
             .clips
@@ -69,10 +72,14 @@ impl ClipboardStore {
 
 #[cfg(test)]
 mod test {
-    use std::{path::Path, fs, time::Instant};
+    use std::fs;
+    use std::path::Path;
+    use std::time::Instant;
+
+    use rand::distributions::Alphanumeric;
+    use rand::Rng;
 
     use super::*;
-    use rand::{distributions::Alphanumeric, Rng};
 
     fn rand_string(range: std::ops::Range<usize>) -> String {
         rand::thread_rng()
@@ -96,10 +103,10 @@ mod test {
         let db_name = format!("test-clipboard-{}", rand::thread_rng().gen::<u16>());
         let db_name = Path::new(db_name.as_str());
         let mut db = ClipboardStore {
-            clips: sled::open(&db_name).expect("Could not open database")
+            clips: sled::open(&db_name).expect("Could not open database"),
         };
 
-        for num_elements in [10, 100/*, 1_000, 10_000*/] {
+        for num_elements in [10, 100 /*, 1_000, 10_000*/] {
             // Add random clips to get to desired size
             for _ in 0..(num_elements - db.clips.len()) {
                 db.add_clip(rand_string(MIN_DB_ENTRY_LEN..MAX_DB_ENTRY_LEN));
@@ -107,13 +114,18 @@ mod test {
 
             // Search for random string many times to get average search time
             let start_time = Instant::now();
-            let queries: Vec<String> = (0..NUM_QUERIES).map(|_| rand_string(MIN_QUERY_LEN..MAX_QUERY_LEN)).collect();
+            let queries: Vec<String> = (0..NUM_QUERIES)
+                .map(|_| rand_string(MIN_QUERY_LEN..MAX_QUERY_LEN))
+                .collect();
             for query in queries {
                 db.get_matches(&query);
             }
             let avg_duration = (Instant::now() - start_time) / NUM_QUERIES.try_into().unwrap();
             println!("With {num_elements} elements, took {avg_duration:?} seconds per query");
-            println!("With {num_elements} elements, size of DB: {}", db.clips.size_on_disk().unwrap());
+            println!(
+                "With {num_elements} elements, size of DB: {}",
+                db.clips.size_on_disk().unwrap()
+            );
         }
 
         fs::remove_dir_all(&db_name).expect("Failed to remove created test db!");
