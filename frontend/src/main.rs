@@ -15,7 +15,7 @@ struct Query<'a> {
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let query_results = use_state(String::default);
+    let query_results = use_state_eq(String::default);
 
     // Callback that executes query on every change to input
     // TODO: make async?
