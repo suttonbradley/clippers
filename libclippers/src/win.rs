@@ -1,3 +1,4 @@
+use log::{debug, error, info, warn};
 use windows::core::*;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::DataExchange::{
@@ -14,66 +15,66 @@ use crate::util::clip_store_op;
 // Hotkey ID
 const HOTKEY_ID_WIN_V: i32 = 0xBEEF;
 
-pub(crate) fn run_loop() {
-    unsafe {
-        // Get module handle to calling process by passing None
-        // TODO: pop-up if things like this fail
-        let module_instance = GetModuleHandleA(None).expect("Failed to get module handle");
-        debug_assert!(module_instance.0 != 0);
+pub(crate) unsafe fn init() {
+    // Get module handle to calling process by passing None
+    // TODO: pop-up if things like this fail
+    let module_instance = GetModuleHandleA(None).expect("Failed to get module handle");
+    debug_assert!(module_instance.0 != 0);
 
-        // Register window class
-        let window_class = s!("clippers-window");
-        let wc = WNDCLASSA {
-            hInstance: module_instance.into(),
-            lpszClassName: window_class,
-            // Use wndproc function below
-            lpfnWndProc: Some(wndproc),
-            ..Default::default()
-        };
+    // Register window class
+    let window_class = s!("clippers-window");
+    let wc = WNDCLASSA {
+        hInstance: module_instance.into(),
+        lpszClassName: window_class,
+        // Use wndproc function below
+        lpfnWndProc: Some(wndproc),
+        ..Default::default()
+    };
 
-        // Register window class and save the returned class ID
-        let atom = RegisterClassA(&wc);
-        debug_assert!(atom != 0);
+    // Register window class and save the returned class ID
+    let atom = RegisterClassA(&wc);
+    debug_assert!(atom != 0);
 
-        // Create window
-        let window_handle = CreateWindowExA(
-            WINDOW_EX_STYLE::default(),
-            window_class,
-            s!("clippers-main"),
-            WS_DISABLED,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            None,
-            None,
-            module_instance,
-            None,
-        );
+    // Create window
+    let window_handle = CreateWindowExA(
+        WINDOW_EX_STYLE::default(),
+        window_class,
+        s!("clippers-main"),
+        WS_DISABLED,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        None,
+        None,
+        module_instance,
+        None,
+    );
 
-        // Register Win+V
-        // TODO: add retries/backoff and fail after some time
-        while let Err(_) = RegisterHotKey(
-            window_handle,
-            HOTKEY_ID_WIN_V,
-            MOD_WIN,
-            std::mem::transmute::<VIRTUAL_KEY, u16>(VK_V) as u32,
-        ) {
-            println!("Failed to register hotkey");
-        }
-        // TODO: call UnregisterHotKey?
+    // Register Win+V
+    // TODO: add retries/backoff and fail after some time
+    while let Err(_) = RegisterHotKey(
+        window_handle,
+        HOTKEY_ID_WIN_V,
+        MOD_WIN,
+        std::mem::transmute::<VIRTUAL_KEY, u16>(VK_V) as u32,
+    ) {
+        error!("Failed to register hotkey");
+    }
+    // TODO: call UnregisterHotKey?
 
-        // Add this window as a clipboard format listener
-        // TODO: add retries/backoff and fail after some time
-        while let Err(_) = AddClipboardFormatListener(window_handle) {
-            println!("Failed to add ClipboardFormatListener");
-        }
+    // Add this window as a clipboard format listener
+    // TODO: add retries/backoff and fail after some time
+    while let Err(_) = AddClipboardFormatListener(window_handle) {
+        error!("Failed to add ClipboardFormatListener");
+    }
+}
 
-        // Listener loop
-        let mut message = MSG::default();
-        while GetMessageA(&mut message, None, 0, 0).into() {
-            DispatchMessageA(&message);
-        }
+pub(crate) unsafe fn run_loop() {
+    // Listener loop
+    let mut message = MSG::default();
+    while GetMessageA(&mut message, None, 0, 0).into() {
+        DispatchMessageA(&message);
     }
 }
 
@@ -84,7 +85,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
             WM_CLIPBOARDUPDATE => {
                 // Get lock on clipboard
                 while let Err(_) = OpenClipboard(window) {
-                    println!("Failed to open clipboard");
+                    error!("Failed to open clipboard");
                 }
 
                 // Get handle clipboard data of type text
@@ -93,11 +94,11 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 {
                     h
                 } else {
-                    println!("Clipboard data was not CF_TEXT or handle fetch failed"); // TODO: trace log
+                    debug!("Clipboard data was not CF_TEXT or handle fetch failed"); // TODO: trace log
 
                     // TODO: use closure to do this so that we can unconditionally CloseClipboard with only one line
                     while let Err(_) = CloseClipboard() {
-                        println!("Failed to close clipboard. Retrying...");
+                        error!("Failed to close clipboard. Retrying...");
                     }
                     return LRESULT(1); // TODO: error codes?
                 };
@@ -109,25 +110,24 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     if !data.is_null() {
                         break data;
                     }
-                    println!("GlobalLock returned null. Retrying...");
+                    warn!("GlobalLock returned null. Retrying...");
                 };
                 let data = match std::ffi::CStr::from_ptr(data as *const _).to_str() {
                     Ok(data) => data,
                     Err(e) => {
-                        println!("Failed to convert data to UTF-8: {e}");
-                        panic!();
+                        error!("Failed to convert data to UTF-8: {e}");
+                        return LRESULT(1);
                     }
                 };
-                // println!("COPIED: {data}"); // TODO: delete or make trace log
                 // TODO: apply a size limit
                 clip_store_op(|store| store.add_clip(data.to_owned()));
 
                 // Close resources and return
                 while let Err(_) = GlobalUnlock(cb_data_handle) {
-                    println!("Failed to GlobalUnlock. Retrying...");
+                    error!("Failed to GlobalUnlock. Retrying...");
                 }
                 while let Err(_) = CloseClipboard() {
-                    println!("Failed to close clipboard. Retrying...");
+                    error!("Failed to close clipboard. Retrying...");
                 }
 
                 LRESULT(0)
@@ -140,11 +140,11 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                 debug_assert!(hotkey_id == HOTKEY_ID_WIN_V);
 
                 // Dump clipboard, for now
-                println!("Dumping clipboard:");
+                info!("Dumping clipboard:");
                 clip_store_op(|store| store.dump());
                 // TODO: just do this for now to test it out
                 let query = "abc";
-                println!("Matching clipboard on \"{query}\":");
+                info!("Matching clipboard on \"{query}\":");
                 clip_store_op(|store| store.get_matches(query));
 
                 LRESULT(0)

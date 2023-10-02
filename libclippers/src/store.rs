@@ -1,6 +1,7 @@
 use chrono::Utc;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use log::trace;
 use sled;
 
 const SCORE_THRESHOLD: i64 = 10;
@@ -20,6 +21,7 @@ impl ClipboardStore {
 
     pub(crate) fn add_clip(&mut self, data: String) {
         // TODO: dedup
+        trace!("Adding clip to DB: \"{}\"", data);
         self.clips
             .insert(Utc::now().to_string(), data.as_str())
             .expect("Failed to insert into DB");
@@ -29,7 +31,7 @@ impl ClipboardStore {
     pub(crate) fn dump(&self) {
         for clip in self.clips.iter() {
             if let Ok((k, v)) = clip {
-                println!(
+                trace!(
                     "{}: {}",
                     std::str::from_utf8(k.as_ref()).unwrap(),
                     std::str::from_utf8(v.as_ref()).unwrap()
@@ -43,7 +45,7 @@ impl ClipboardStore {
         let matcher = SkimMatcherV2::default().ignore_case(); // TODO: make case ignore configurable?
 
         // TODO: this creates an owned string copied out of the database, not performant
-        let mut values: Vec<(i64, String)> = self
+        let mut matches: Vec<(i64, String)> = self
             .clips
             .iter()
             .filter_map(|x| {
@@ -60,14 +62,16 @@ impl ClipboardStore {
                 })
             })
             .collect();
-        values.sort_by_key(|x| std::cmp::Reverse(x.0));
+        matches.sort_by_key(|x| std::cmp::Reverse(x.0));
 
-        // println!("{values:?}");
+        // TODO: delete
+        trace!("Matches for \"{}\" {:?}", query, matches);
     }
 
-    fn clear_old(&mut self) {
-        unimplemented!();
-    }
+    // TODO: impl
+    // fn clear_old(&mut self) {
+    //     unimplemented!();
+    // }
 }
 
 #[cfg(test)]

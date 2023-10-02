@@ -2,28 +2,34 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 // use tauri::Manager;
+use libclippers;
+
+use env_logger;
+use log::info;
 
 #[tauri::command]
 // TODO: make async as generated?
 fn execute_query(query: &str) -> String {
-    println!("Querying: \"{query}\"");
+    info!("Querying: \"{query}\"");
     format!("YOU QUERIED {query}")
 }
 
-#[derive(Default)]
-struct MyState {
-  s: std::sync::Mutex<String>,
-  t: std::sync::Mutex<std::collections::HashMap<String, String>>,
-}
-// remember to call `.manage(MyState::default())`
-#[tauri::command]
-async fn command_name(state: tauri::State<'_, MyState>) -> Result<(), String> {
-  *state.s.lock().unwrap() = "new string".into();
-  state.t.lock().unwrap().insert("key".into(), "value".into());
-  Ok(())
-}
+// #[derive(Default)]
+// struct MyState {
+//   s: std::sync::Mutex<String>,
+//   t: std::sync::Mutex<std::collections::HashMap<String, String>>,
+// }
+// // remember to call `.manage(MyState::default())`
+// #[tauri::command]
+// async fn command_name(state: tauri::State<'_, MyState>) -> Result<(), String> {
+//   *state.s.lock().unwrap() = "new string".into();
+//   state.t.lock().unwrap().insert("key".into(), "value".into());
+//   Ok(())
+// }
 
 fn main() {
+    env_logger::init();
+    libclippers::init();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![execute_query])
         .run(tauri::generate_context!())
