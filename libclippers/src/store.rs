@@ -65,7 +65,7 @@ impl ClipboardStore {
         matches.sort_by_key(|x| std::cmp::Reverse(x.0));
 
         // TODO: delete
-        trace!("Matches for \"{}\" {:?}", query, matches);
+        trace!("Matches for \"{}\": {:?}", query, matches);
     }
 
     // TODO: impl
