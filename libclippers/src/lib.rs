@@ -18,7 +18,7 @@ fn init_clipboard() {
             panic!("Failed to setup ClipboardStore");
         }
     }
-    trace!("Set up clipboard OnceLock");
+    trace!("Successfully set up clipboard OnceLock");
 }
 
 #[cfg(not(feature = "listener"))]
