@@ -1,17 +1,15 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// use tauri::Manager;
-use log::info;
 use {env_logger, libclippers};
 
-#[tauri::command]
-// TODO: make async as generated?
-fn execute_query(query: &str) -> String {
-    info!("Querying: \"{query}\"");
-    libclippers::get_matches(query);
-    format!("YOU QUERIED {query}")
-}
+// #[tauri::command]
+// // TODO: make async as generated?
+// fn execute_query(query: &str) -> String {
+//     info!("Querying: \"{query}\"");
+//     libclippers::get_matches(query);
+//     format!("YOU QUERIED {query}")
+// }
 
 // #[derive(Default)]
 // struct MyState {
@@ -32,7 +30,7 @@ fn main() {
     // TODO: does listener thread exit on app exit?
     libclippers::init();
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![execute_query])
+        // .invoke_handler(tauri::generate_handler![execute_query])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
