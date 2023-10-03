@@ -27,6 +27,7 @@ fn execute_query(query: &str) -> String {
 // }
 
 fn main() {
+    // TODO: turn off for release builds?
     env_logger::init();
     libclippers::init();
     tauri::Builder::default()

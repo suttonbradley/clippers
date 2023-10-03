@@ -3,6 +3,7 @@ use serde_wasm_bindgen::to_value as to_js_value;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
+use log::debug;
 
 fn main() {
     yew::Renderer::<App>::new().render();
@@ -15,6 +16,11 @@ struct Query<'a> {
 
 #[function_component(App)]
 pub fn app() -> Html {
+    // Init logger
+    // TODO: turn off for release builds?
+    wasm_logger::init(wasm_logger::Config::default());
+    debug!("Logger initialized");
+
     let query_results = use_state_eq(String::default);
 
     // Callback that executes query on every change to input
