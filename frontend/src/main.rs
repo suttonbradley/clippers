@@ -1,7 +1,7 @@
+use log::debug;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
-use log::debug;
 
 fn main() {
     yew::Renderer::<App>::new().render();
@@ -20,6 +20,7 @@ pub fn app() -> Html {
     // Callback that executes query on every change to input
     // TODO: make async?
     let on_change_cb = {
+        let query_results_handle = query_results_handle.clone();
         Callback::from(move |e: InputEvent| {
             let target = e.target();
             let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
@@ -27,7 +28,9 @@ pub fn app() -> Html {
             if let Some(input) = input {
                 // TODO: try not to copy here
                 let input = input.value();
-                query_results_handle.set(QueryResultListProps { results: vec![QueryResult { res: input }] });
+                query_results_handle.set(QueryResultListProps {
+                    results: vec![QueryResult { res: input.into() }],
+                });
             }
         })
     };
@@ -35,7 +38,7 @@ pub fn app() -> Html {
     html! {
         <div>
             <input oninput={on_change_cb}/>
-            <QueryResultList results={ &*query_results_handle } />
+            <QueryResultList ..(*query_results_handle).clone() />
         </div>
     }
 }
@@ -49,19 +52,19 @@ fn query_result(QueryResultListProps { results }: &QueryResultListProps) -> Html
     }
 }
 
-#[derive(Default, Properties, PartialEq)]
+#[derive(Default, Properties, PartialEq, Clone)]
 struct QueryResultListProps {
     results: Vec<QueryResult>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 struct QueryResult {
-    res: String,
+    res: AttrValue,
 }
 
 impl ToHtml for QueryResult {
     fn to_html(&self) -> Html {
-        html! { <li>{ self.res }</li> }
+        html! { <li>{ self.res.clone() }</li> }
     }
 }
 
