@@ -1,4 +1,5 @@
-use chrono::Utc;
+#[cfg(feature = "listener")]
+use chrono::Utc; // for ClipboardStore::add_clip
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use log::trace;
@@ -19,6 +20,7 @@ impl ClipboardStore {
         }
     }
 
+    #[cfg(feature = "listener")]
     pub(crate) fn add_clip(&mut self, data: &str) {
         // TODO: dedup
         trace!("Adding clip to DB: \"{}\"", data);

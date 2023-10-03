@@ -11,6 +11,7 @@ sled = "0.34.7"
 
 [dependencies.windows]
 version = "0.51.1"
+optional = true
 features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_Foundation",
@@ -24,3 +25,6 @@ features = [
 
 [dev-dependencies]
 rand = "0.8.5"
+
+[features]
+listener = ["windows"]
