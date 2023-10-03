@@ -1,5 +1,3 @@
-use serde::Serialize;
-use serde_wasm_bindgen::to_value as to_js_value;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -9,11 +7,6 @@ fn main() {
     yew::Renderer::<App>::new().render();
 }
 
-#[derive(Serialize)]
-struct Query<'a> {
-    query: &'a str,
-}
-
 #[function_component(App)]
 pub fn app() -> Html {
     // Init logger
@@ -21,28 +14,20 @@ pub fn app() -> Html {
     wasm_logger::init(wasm_logger::Config::default());
     debug!("Logger initialized");
 
-    let query_results = use_state_eq(String::default);
+    // TODO: use_state_eq?
+    let query_results_handle = use_state(QueryResultListProps::default);
 
     // Callback that executes query on every change to input
     // TODO: make async?
     let on_change_cb = {
-        let query_results = query_results.clone();
         Callback::from(move |e: InputEvent| {
             let target = e.target();
             let input = target.and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
 
             if let Some(input) = input {
-                query_results.set(
-                    invoke(
-                        "execute_query",
-                        to_js_value(&Query {
-                            query: input.value().as_str(),
-                        })
-                        .unwrap(),
-                    )
-                    .as_string()
-                    .unwrap(),
-                )
+                // TODO: try not to copy here
+                let input = input.value();
+                query_results_handle.set(QueryResultListProps { results: vec![QueryResult { res: input }] });
             }
         })
     };
@@ -50,13 +35,38 @@ pub fn app() -> Html {
     html! {
         <div>
             <input oninput={on_change_cb}/>
-            <p><b>{ &*query_results }</b></p>
+            <QueryResultList results={ &*query_results_handle } />
         </div>
     }
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = window, js_name = __TAURI_INVOKE__)]
-    fn invoke(cmd: &str, args: JsValue) -> JsValue;
+#[function_component(QueryResultList)]
+fn query_result(QueryResultListProps { results }: &QueryResultListProps) -> Html {
+    html! {
+        <ul>
+            { results.iter().map(|x| x.to_html()).collect::<Vec<Html>>() }
+        </ul>
+    }
 }
+
+#[derive(Default, Properties, PartialEq)]
+struct QueryResultListProps {
+    results: Vec<QueryResult>,
+}
+
+#[derive(PartialEq)]
+struct QueryResult {
+    res: String,
+}
+
+impl ToHtml for QueryResult {
+    fn to_html(&self) -> Html {
+        html! { <li>{ self.res }</li> }
+    }
+}
+
+// #[wasm_bindgen]
+// extern "C" {
+//     #[wasm_bindgen(js_namespace = window, js_name = __TAURI_INVOKE__)]
+//     fn invoke(cmd: &str, args: JsValue) -> JsValue;
+// }
