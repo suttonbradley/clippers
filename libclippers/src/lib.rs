@@ -39,6 +39,6 @@ pub fn init() -> JoinHandle<()> {
 }
 
 // TODO: probably not the most ergonomic choice
-pub fn get_matches(query: &str) {
-    util::clip_store_op(|store| store.get_matches(query));
+pub fn get_matches(query: &str) -> Vec<String> {
+    util::clip_store_op(|store| { store.get_matches(query) })
 }

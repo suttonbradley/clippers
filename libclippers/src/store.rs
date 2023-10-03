@@ -43,7 +43,7 @@ impl ClipboardStore {
     }
 
     // TODO: should actually return something, for now just print
-    pub(crate) fn get_matches(&self, query: &str) {
+    pub(crate) fn get_matches(&self, query: &str) -> Vec<String> {
         let matcher = SkimMatcherV2::default().ignore_case(); // TODO: make case ignore configurable?
 
         // TODO: this creates an owned string copied out of the database, not performant
@@ -64,10 +64,11 @@ impl ClipboardStore {
                 })
             })
             .collect();
+        // TODO: use binary heap, O(n) construction, then take first n elements
+        // BinaryHeap::from(matches);
         matches.sort_by_key(|x| std::cmp::Reverse(x.0));
 
-        // TODO: delete
-        trace!("Matches for \"{}\": {:?}", query, matches);
+        matches.into_iter().take(10).map(|x| x.1).collect()
     }
 
     // TODO: impl
