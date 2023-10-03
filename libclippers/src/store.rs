@@ -64,6 +64,7 @@ impl ClipboardStore {
                 })
             })
             .collect();
+        trace!("matches for \"{query}\": {matches:?}");
         // TODO: use binary heap, O(n) construction, then take first n elements
         // BinaryHeap::from(matches);
         matches.sort_by_key(|x| std::cmp::Reverse(x.0));
@@ -97,44 +98,49 @@ mod test {
     }
 
     #[test]
-    fn test() {
-        // TODO: currently, get_matches prints, which affects perf -- comment it out for the test until fixed
-        // Parameters
-        const NUM_QUERIES: usize = 1_000; // searches per DB size
-        const MIN_DB_ENTRY_LEN: usize = 10;
-        const MAX_DB_ENTRY_LEN: usize = 2000; // TODO: vary this over testing iters
-        const MIN_QUERY_LEN: usize = 1;
-        const MAX_QUERY_LEN: usize = 10; // TODO: vary this over testing iters
+    fn perf() {
+        #[cfg(not(feature = "listener"))]
+        panic!("Need feature \"listener\" in order to test perf (insert into test DB)");
+        #[cfg(feature = "listener")]
+        {
+            // TODO: currently, get_matches prints, which affects perf -- comment it out for the test until fixed
+            // Parameters
+            const NUM_QUERIES: usize = 1_000; // searches per DB size
+            const MIN_DB_ENTRY_LEN: usize = 10;
+            const MAX_DB_ENTRY_LEN: usize = 2000; // TODO: vary this over testing iters
+            const MIN_QUERY_LEN: usize = 1;
+            const MAX_QUERY_LEN: usize = 10; // TODO: vary this over testing iters
 
-        // Create db with random ending, removing old one
-        let db_name = format!("test-clipboard-{}", rand::thread_rng().gen::<u16>());
-        let db_name = Path::new(db_name.as_str());
-        let mut db = ClipboardStore {
-            clips: sled::open(&db_name).expect("Could not open database"),
-        };
+            // Create db with random ending, removing old one
+            let db_name = format!("test-clipboard-{}", rand::thread_rng().gen::<u16>());
+            let db_name = Path::new(db_name.as_str());
+            let mut db = ClipboardStore {
+                clips: sled::open(&db_name).expect("Could not open database"),
+            };
 
-        for num_elements in [10, 100 /*, 1_000, 10_000*/] {
-            // Add random clips to get to desired size
-            for _ in 0..(num_elements - db.clips.len()) {
-                db.add_clip(rand_string(MIN_DB_ENTRY_LEN..MAX_DB_ENTRY_LEN).as_str());
+            for num_elements in [10, 100 /*, 1_000, 10_000*/] {
+                // Add random clips to get to desired size
+                for _ in 0..(num_elements - db.clips.len()) {
+                    db.add_clip(rand_string(MIN_DB_ENTRY_LEN..MAX_DB_ENTRY_LEN).as_str());
+                }
+
+                // Search for random string many times to get average search time
+                let start_time = Instant::now();
+                let queries: Vec<String> = (0..NUM_QUERIES)
+                    .map(|_| rand_string(MIN_QUERY_LEN..MAX_QUERY_LEN))
+                    .collect();
+                for query in queries {
+                    db.get_matches(&query);
+                }
+                let avg_duration = (Instant::now() - start_time) / NUM_QUERIES.try_into().unwrap();
+                println!("With {num_elements} elements, took {avg_duration:?} seconds per query");
+                println!(
+                    "With {num_elements} elements, size of DB: {}",
+                    db.clips.size_on_disk().unwrap()
+                );
             }
 
-            // Search for random string many times to get average search time
-            let start_time = Instant::now();
-            let queries: Vec<String> = (0..NUM_QUERIES)
-                .map(|_| rand_string(MIN_QUERY_LEN..MAX_QUERY_LEN))
-                .collect();
-            for query in queries {
-                db.get_matches(&query);
-            }
-            let avg_duration = (Instant::now() - start_time) / NUM_QUERIES.try_into().unwrap();
-            println!("With {num_elements} elements, took {avg_duration:?} seconds per query");
-            println!(
-                "With {num_elements} elements, size of DB: {}",
-                db.clips.size_on_disk().unwrap()
-            );
+            fs::remove_dir_all(&db_name).expect("Failed to remove created test db!");
         }
-
-        fs::remove_dir_all(&db_name).expect("Failed to remove created test db!");
     }
 }

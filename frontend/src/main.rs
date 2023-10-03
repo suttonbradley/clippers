@@ -1,21 +1,23 @@
 use libclippers;
-use log::debug;
+use log::info;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 fn main() {
+    // Init logger
+    // TODO: turn off for release builds?
+    wasm_logger::init(wasm_logger::Config::default());
+    info!("Logger initialized");
+
     libclippers::init();
+    info!("Initialized libclippers"); // TODO: remove
+
     yew::Renderer::<App>::new().render();
 }
 
 #[function_component(App)]
 pub fn app() -> Html {
-    // Init logger
-    // TODO: turn off for release builds?
-    wasm_logger::init(wasm_logger::Config::default());
-    debug!("Logger initialized");
-
     // TODO: use_state_eq?
     let query_results_handle = use_state(QueryResultListProps::default);
 

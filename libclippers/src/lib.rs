@@ -33,8 +33,9 @@ pub fn init() -> JoinHandle<()> {
     // Run windows listener loop
     unsafe {
         crate::win::init();
-        trace!("Starting wndproc message receiver loop...");
-        thread::spawn(|| crate::win::run_loop())
+        let handle = thread::spawn(|| crate::win::run_loop());
+        trace!("Successfully started wndproc message receiver loop");
+        handle
     }
 }
 
