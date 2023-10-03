@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 libclippers = { path = "../libclippers" }
 log = "0.4.20"
-sled = "0.34.7"
 wasm-bindgen = "0.2.87"
 wasm-logger = "0.2.0"
 web-sys = "0.3.64"

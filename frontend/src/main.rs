@@ -1,4 +1,4 @@
-use libclippers;
+// use libclippers;
 use log::info;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
@@ -10,8 +10,8 @@ fn main() {
     wasm_logger::init(wasm_logger::Config::default());
     info!("Logger initialized");
 
-    libclippers::init();
-    info!("Initialized libclippers"); // TODO: remove
+    // libclippers::init();
+    // info!("Initialized libclippers"); // TODO: remove
 
     yew::Renderer::<App>::new().render();
 }
@@ -34,7 +34,8 @@ pub fn app() -> Html {
                 let input = input.value();
                 query_results_handle.set(QueryResultListProps {
                     // TODO: inefficient -- make the types compatible (ideally shared memory too)
-                    results: libclippers::get_matches(&input).into_iter().map(QueryResult::from).collect(),
+                    // results: libclippers::get_matches(&input).into_iter().map(QueryResult::from).collect(),
+                    results: vec![QueryResult::from(input)]
                 });
             }
         })
