@@ -1,9 +1,11 @@
+use libclippers;
 use log::debug;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 fn main() {
+    libclippers::init();
     yew::Renderer::<App>::new().render();
 }
 
@@ -29,7 +31,8 @@ pub fn app() -> Html {
                 // TODO: try not to copy here
                 let input = input.value();
                 query_results_handle.set(QueryResultListProps {
-                    results: vec![QueryResult { res: input.into() }],
+                    // TODO: inefficient -- make the types compatible (ideally shared memory too)
+                    results: libclippers::get_matches(&input).into_iter().map(QueryResult::from).collect(),
                 });
             }
         })
@@ -60,6 +63,12 @@ struct QueryResultListProps {
 #[derive(PartialEq, Clone)]
 struct QueryResult {
     res: AttrValue,
+}
+
+impl QueryResult {
+    fn from(s: String) -> Self {
+        QueryResult { res: s.into() }
+    }
 }
 
 impl ToHtml for QueryResult {
