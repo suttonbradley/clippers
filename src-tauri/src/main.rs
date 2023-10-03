@@ -29,6 +29,7 @@ fn execute_query(query: &str) -> String {
 fn main() {
     // TODO: turn off for release builds?
     env_logger::init();
+    // TODO: does listener thread exit on app exit?
     libclippers::init();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![execute_query])
