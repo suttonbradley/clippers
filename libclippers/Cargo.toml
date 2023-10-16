@@ -27,4 +27,6 @@ features = [
 rand = "0.8.5"
 
 [features]
+# Spawns a thread that uses the windows crate to listen
+# for clipboard updates and write new entries to the store.
 listener = ["windows"]

@@ -10,9 +10,6 @@ fn main() {
     wasm_logger::init(wasm_logger::Config::default());
     info!("Logger initialized");
 
-    // libclippers::init();
-    // info!("Initialized libclippers"); // TODO: remove
-
     yew::Renderer::<App>::new().render();
 }
 
