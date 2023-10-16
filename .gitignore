@@ -5,6 +5,7 @@
 !frontend/
 !rustfmt.toml
 !Trunk.toml
+!plan.md
 
 # Un-except certain things
 src-tauri/icons
